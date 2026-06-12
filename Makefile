@@ -1,10 +1,9 @@
-PYTHON = python3
 VENV = venv
 PIP = $(VENV)/bin/pip
-RUN = uv run
+RUN = uv run python -m 
 
 run:
-	$(RUN) src/call_me_maybe.py
+	@$(RUN) src.main
 
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
@@ -22,7 +21,8 @@ fclean:
 	@echo "\033[32mProject full cleanup!!"
 
 debug:
-	$(RUN) -m pdb src/call_me_maybe.py
+	#tenho que finalizar
+	$(RUN) pdb src.main
 
 lint:
 	$(VENV)/bin/flake8 .
