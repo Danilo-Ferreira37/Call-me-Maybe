@@ -4,4 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["numpy", "pydantic"]
+dependencies = ["numpy", "pydantic", "llm_sdk"]
+
+[tool.uv.sources]
+llm_sdk = { path = "llm_sdk" }
