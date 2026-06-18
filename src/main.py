@@ -12,7 +12,6 @@ def main():
 
     llm = Small_LLM_Model()
     decoding = ConstrainedDecoding(llm, config)
-    decoding.flow_decoding()
 
 
 

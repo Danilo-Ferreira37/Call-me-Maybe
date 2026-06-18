@@ -51,5 +51,5 @@ def parse_prompt(path: str) -> Union[List[PromptItem], List[FuncFormat]]:
 def get_all_possible_tokens():
     with open(f"{os.environ['HOME']}/sgoinfre/hf-cache/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca/vocab.json") as tokens:
         output = json.load(tokens)
-        with open("data/all_LLM_tokens.json", "w") as f:
+        with open("data/vocab.json", "w") as f:
             json.dump(output, f, ensure_ascii=False, indent=2)
