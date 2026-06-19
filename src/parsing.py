@@ -1,10 +1,10 @@
 from pydantic import BaseModel, ValidationError, ConfigDict
-from typing import List, Literal, Dict, Union
+from typing import List, Literal, Dict, Union, Tuple
 import json
 import os
 
 
-class PromptItem(BaseModel):
+class FuncCall(BaseModel):
     prompt: str
     model_config = ConfigDict(extra="forbid")
 
@@ -14,7 +14,7 @@ class VariableType(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class FuncFormat(BaseModel):
+class FuncDef(BaseModel):
     name: str
     description: str
     parameters: Dict[str, VariableType]
@@ -22,12 +22,12 @@ class FuncFormat(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-def parse_prompt(path: str) -> Union[List[PromptItem], List[FuncFormat]]:
+def parse_funcdef(path: str) -> Union[List[FuncCall], List[FuncDef]]:
     try:
         with open(path) as f:
             config = json.load(f)
     except json.JSONDecodeError as e:
-        print(e)
+        print("Error in the json file:", e)
         exit(1)
 
     if not isinstance(config, list):
@@ -35,20 +35,37 @@ def parse_prompt(path: str) -> Union[List[PromptItem], List[FuncFormat]]:
         exit(1)
 
     try:
-        return [PromptItem.model_validate(item) for item in config]
+        return [FuncDef.model_validate(item) for item in config]
     except ValidationError:
-        pass
+        print("Error: The input file functions_definition.json is in a wrong format!")
+        exit(1)
+
+
+def parse_funccall(path: str) -> Union[List[FuncCall], List[FuncDef]]:
+    try:
+        with open(path) as f:
+            config = json.load(f)
+    except json.JSONDecodeError as e:
+        print("Error in the json file:", e)
+        exit(1)
+
+    if not isinstance(config, list):
+        print("Error: The file must have a list on the top")
+        exit(1)
 
     try:
-        return [FuncFormat.model_validate(item) for item in config]
+        return [FuncCall.model_validate(item) for item in config]
     except ValidationError:
-        pass
-
-    print("Error: The file does not match any of the supported formats.")
-    exit(1)
+        print("Error: The input file function_calling_tests.json is in a wrong format!")
+        exit(1)
 
 
-def get_all_possible_tokens():
+def read_input_files(file1: str, file2: str) -> Tuple[List[FuncCall, List[FuncDef]]]:
+    return parse_funcdef(file1), parse_funccall(file2)
+
+
+
+def tokens_vocabulary():
     with open(f"{os.environ['HOME']}/sgoinfre/hf-cache/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca/vocab.json") as tokens:
         output = json.load(tokens)
         with open("data/vocab.json", "w") as f:
