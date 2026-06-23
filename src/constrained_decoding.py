@@ -11,11 +11,11 @@ class ConstrainedDecoding():
         s.flow_decoding()
 
     def set_possible_tokens(s, definition: list[FuncDef]) -> None:
-        possible_names = ""
+        s.possible_names = []
         for dct in definition:
-            possible_names += f"{dct.name}"
-        s.possible_names = s.llm.encode(possible_names).squeeze()
-        print(s.possible_names)
+            s.possible_names.append(s.llm.encode(dct.name).squeeze().tolist())
+
+
     def flow_decoding(s):
         input_ids = s.tokenizer.squeeze().tolist()
         # Tokens ID in JSON vocabulary
@@ -65,11 +65,14 @@ class ConstrainedDecoding():
                 input_ids.extend([aspas, comma, space, aspas, name, aspas, colon, space, aspas])
                 count += len(s.original_input) + 9
                 continue
+
             elif input_ids[-5] == name:
                 restricted_list = [-float('inf')] * len(s.logits)
-                for n in s.possible_names:
-                    idx = restricted_list.index(n)
-                    restricted_list[idx] = s.logits[idx]
+                print(s.possible_names)
+                func_name = max(s.possible_names)
+                input_ids.extend(func_name)
+                count += len(func_name)
+
             else:
                 restricted_list = s.logits
             
