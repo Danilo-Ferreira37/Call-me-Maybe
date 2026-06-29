@@ -18,10 +18,11 @@ fclean:
 	@find . -type f -name "*.pyc" -delete
 	@rm -rf .venv
 	@clear
+	@rm data/vocab.json
 	@echo "\033[32mProject full cleanup!!"
 
 debug:
-	#tenho que finalizar
+	#tenho que finalizar[[[]]]
 	$(RUN) pdb src.main
 
 lint:

@@ -13,12 +13,17 @@ class ConstrainedDecoding():
     def set_possible_tokens(s, definition: list[FuncDef]) -> None:
         s.possible_names = []
         s.descriptions = []
+        s.parameters = {}
+        param_keys = []
+        param_values = []
 
-        for dct in definition:
+        for i, dct in enumerate(definition):
             s.possible_names.append(s.llm.encode(dct.name).squeeze().tolist())
             s.descriptions.append(s.llm.encode(dct.description).squeeze().tolist())
-            #s.returns.append(s.llm.encode(dct.returns.type).squeeze().tolist())
+            for para_name, para_type in definition[i].parameters.items():
+                print(para_name, type(str(para_type)))
 
+        exit(1)
     def restricted_tokens(s, token: int) -> list[int]:
         restricted_list = [-float('inf')] * len(s.logits)
         restricted_list[token] = s.logits[token]
@@ -31,19 +36,19 @@ class ConstrainedDecoding():
         open_parent = 58
         open_chav = 90
         close_chav = 92
+        description = 4684
         space = 220 
         comma = 11 # virgula
         colon = 25 # dois pontos
         prompt = 40581
         aspas = 1
         name = 606
-        underline = 62
-        fn = 8822
         parameters = 13786
 
         count = 0
         wrote_prompt = False
-        max_novos_tokens = 40
+        max_novos_tokens = 60
+        wrote_name = False
 
         while count < max_novos_tokens:
             s.logits = s.llm.get_logits_from_input_ids(input_ids)
@@ -53,6 +58,11 @@ class ConstrainedDecoding():
                 
             elif count == 1:
                 restricted_list = s.restricted_tokens(open_chav)
+
+            elif wrote_name:
+                pass
+                
+
 
             # If the last token_id is ('{', 'prompt') token= "
             elif input_ids[-1] in {open_chav, prompt}:
@@ -85,20 +95,21 @@ class ConstrainedDecoding():
                         input_description.append(tk_id)
                     score_lst.append(score)
                     score = 0
-                idx_func_name = score_lst.index(max(score_lst))
 
+                idx_func_name = score_lst.index(max(score_lst))
                 input_ids.extend(s.possible_names[idx_func_name])
                 input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav, aspas])
                 count += len(s.possible_names[idx_func_name]) + 10
+                wrote_name = True
                 continue
 
             else:
                 restricted_list = s.logits
-            max_logit = max(restricted_list)
-            idx = restricted_list.index(max_logit)
+            idx = restricted_list.index(max(restricted_list))
             input_ids.append(idx)
 
             count += 1
+
         print(s.llm.decode(input_ids))
 
 
