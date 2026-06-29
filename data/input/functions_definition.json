@@ -9,10 +9,10 @@
         "b": {
             "type": "number"
         }
-    },
-    "returns": {
-        "type": "number"
-    }
+            },
+        "returns": {
+            "type": "number"
+        }
     },
         {
         "name": "fn_greet",
@@ -21,8 +21,8 @@
             "name": {
                 "type": "string"
         }
-    },
-    "returns": {
+            },
+        "returns": {
             "type": "string"
         }
     },
@@ -33,9 +33,9 @@
             "s": {
             "type": "string"
         }
-    },
-    "returns": {
-        "type": "string"
+            },
+        "returns": {
+            "type": "string"
         }
     }
 ]
