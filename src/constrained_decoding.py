@@ -5,25 +5,24 @@ class ConstrainedDecoding():
     def __init__(s, llm, definition: list[FuncDef], prompt: list[FuncCall]):
         s.llm = llm
         s.set_possible_tokens(definition)
-        s.prompt = prompt[1].prompt
-        s.tokenizer = llm.encode(prompt[1].prompt)
+        s.prompt = prompt[0].prompt
+        s.tokenizer = llm.encode(prompt[0].prompt)
         s.original_input = s.tokenizer.squeeze().tolist()
         s.flow_decoding()
 
     def set_possible_tokens(s, definition: list[FuncDef]) -> None:
         s.possible_names = []
         s.descriptions = []
-        s.parameters = {}
-        param_keys = []
-        param_values = []
+        s.parameters = []
 
         for i, dct in enumerate(definition):
+            parameter = {}
             s.possible_names.append(s.llm.encode(dct.name).squeeze().tolist())
             s.descriptions.append(s.llm.encode(dct.description).squeeze().tolist())
             for para_name, para_type in definition[i].parameters.items():
-                print(para_name, type(str(para_type)))
+                parameter[para_name] = str(para_type).replace("type=", "").replace("'", "")
+            s.parameters.append(parameter)
 
-        exit(1)
     def restricted_tokens(s, token: int) -> list[int]:
         restricted_list = [-float('inf')] * len(s.logits)
         restricted_list[token] = s.logits[token]
@@ -47,8 +46,9 @@ class ConstrainedDecoding():
 
         count = 0
         wrote_prompt = False
-        max_novos_tokens = 60
+        max_novos_tokens = 80
         wrote_name = False
+        idx_func_name = 0
 
         while count < max_novos_tokens:
             s.logits = s.llm.get_logits_from_input_ids(input_ids)
@@ -60,9 +60,23 @@ class ConstrainedDecoding():
                 restricted_list = s.restricted_tokens(open_chav)
 
             elif wrote_name:
-                pass
-                
+                for k, v in s.parameters[idx].items():
+                    variable = s.llm.encode(k).squeeze().tolist()
+                    type = v
+                    llm_context_type = s.llm.encode(f"my name ").squeeze().tolist()
+                    logit_var_type = s.llm.get_logits_from_input_ids(llm_context_type)
 
+                    input_ids.append(aspas)
+                    if isinstance(variable, int):
+                        input_ids.append(variable)
+                        input_ids.extend([aspas, colon, space])
+                    else:
+                        input_ids.extend(variable)
+                        input_ids.extend([aspas, colon, space])
+                    input_ids.append(logit_var_type.index(max(logit_var_type)))
+                    input_ids.extend([comma, space])
+
+                break
 
             # If the last token_id is ('{', 'prompt') token= "
             elif input_ids[-1] in {open_chav, prompt}:
@@ -98,7 +112,7 @@ class ConstrainedDecoding():
 
                 idx_func_name = score_lst.index(max(score_lst))
                 input_ids.extend(s.possible_names[idx_func_name])
-                input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav, aspas])
+                input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav])
                 count += len(s.possible_names[idx_func_name]) + 10
                 wrote_name = True
                 continue
@@ -109,7 +123,6 @@ class ConstrainedDecoding():
             input_ids.append(idx)
 
             count += 1
-
         print(s.llm.decode(input_ids))
 
 

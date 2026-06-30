@@ -20,6 +20,9 @@
         "parameters": {
             "name": {
                 "type": "string"
+        },
+        "danilo": {
+            "type": "boolean"
         }
             },
         "returns": {
