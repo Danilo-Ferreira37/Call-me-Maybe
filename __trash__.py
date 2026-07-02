@@ -1,15 +1,150 @@
-#                func_logit = []
-#                func_lgt_list = []
-#
-#                for name in s.possible_names:
-#                    for tk_id in name:
-#                        func_logit.append(s.logits[tk_id])
-#                    func_lgt_list.append(func_logit.copy())
-#                    func_logit.clear()
-#                sum_lgt_list = [sum(func_lgt) for func_lgt in func_lgt_list]
-#                possible_name = max(sum_lgt_list)
-#                idx_possible_name = sum_lgt_list.index(possible_name)
-#                input_ids.extend(s.possible_names[idx_possible_name])
-#                input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav, aspas])
-#                count += len(s.possible_names[idx_possible_name]) + 10
-#                continue
+
+[
+  {
+    "name": "fn_multiply_numbers",
+    "description": "Multiply two numbers together and return their product.",
+    "parameters": {
+      "a": {
+        "type": "number"
+      },
+      "b": {
+        "type": "number"
+      }
+    },
+    "returns": {
+      "type": "number"
+    }
+  },
+  {
+    "name": "fn_is_even",
+    "description": "Check if an integer is even, returns True if even, False if odd.",
+    "parameters": {
+      "n": {
+        "type": "integer"
+      }
+    },
+    "returns": {
+      "type": "boolean"
+    }
+  },
+  {
+    "name": "fn_calculate_compound_interest",
+    "description": "Calculate compound interest: principal * (1 + rate)^years.",
+    "parameters": {
+      "principal": {
+        "type": "number"
+      },
+      "rate": {
+        "type": "number"
+      },
+      "years": {
+        "type": "integer"
+      }
+    },
+    "returns": {
+      "type": "number"
+    }
+  },
+  {
+    "name": "fn_execute_sql_query",
+    "description": "Execute a SQL query on a specified database.",
+    "parameters": {
+      "query": {
+        "type": "string"
+      },
+      "database": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "string"
+    }
+  },
+  {
+    "name": "fn_read_file",
+    "description": "Read a file from the given path with specified encoding.",
+    "parameters": {
+      "path": {
+        "type": "string"
+      },
+      "encoding": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "string"
+    }
+  },
+  {
+    "name": "fn_format_template",
+    "description": "Format a template string containing placeholders.",
+    "parameters": {
+      "template": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "string"
+    }
+  }
+]
+
+
+[
+  {
+    "prompt": "What is the product of 3 and 5?"
+  },
+  {
+    "prompt": "What is the product of 12 and 4?"
+  },
+  {
+    "prompt": "Is 4 an even number?"
+  },
+  {
+    "prompt": "Is 7 an even number?"
+  },
+  {
+    "prompt": "Calculate compound interest on 1234567.89 at 0.0375 rate for 23 years"
+  },
+  {
+    "prompt": "Execute SQL query 'SELECT * FROM users' on the production database"
+  },
+  {
+    "prompt": "Run the query 'INSERT INTO logs VALUES (1, 2, 3)' on the system database"
+  },
+  {
+    "prompt": "Read the file at /home/user/data.json with utf-8 encoding"
+  },
+  {
+    "prompt": "Read C:\\Users\\john\\config.ini with latin-1 encoding"
+  },
+  {
+    "prompt": "Format template: Hello {user}'s profile!"
+  },
+  {
+    "prompt": "Format template: Say \"hello\" to {name}"
+  }
+]
+
+
+
+"""             elif input_ids[-5] == name:
+                context_input = []
+                context_input.extend(s.llm.encode(f"{s.prompt} Given the most appropriate function to call is the one that ").squeeze().tolist())
+                score = 0
+                score_lst = []
+                for descpt in s.descriptions:
+                    input_description = context_input.copy()
+                    for tk_id in descpt[:-1]:
+                        logit_description = s.llm.get_logits_from_input_ids(input_description)
+                        score += logit_description[tk_id]
+                        input_description.append(tk_id)
+                    score_lst.append(score / len(input_description))
+                    score = 0
+
+                idx_func_name = score_lst.index(max(score_lst))
+                input_ids.extend(s.possible_names[idx_func_name])
+                input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav])
+                count += len(s.possible_names[idx_func_name]) + 10
+                wrote_name = True
+                continue """

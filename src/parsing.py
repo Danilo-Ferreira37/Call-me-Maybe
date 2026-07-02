@@ -10,7 +10,7 @@ class FuncCall(BaseModel):
 
 
 class VariableType(BaseModel):
-    type: Literal["number", "string", "boolean"]
+    type: Literal["number", "string", "boolean", "integer"]
     model_config = ConfigDict(extra="forbid")
 
 
