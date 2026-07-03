@@ -148,3 +148,39 @@
                 count += len(s.possible_names[idx_func_name]) + 10
                 wrote_name = True
                 continue """
+
+
+
+
+
+
+
+
+
+
+
+
+            elif input_ids[-5] == name:
+                f_name = []
+                context: list = s.llm.encode(s.context_file).squeeze().tolist()
+                context.extend(s.original_input)
+                i = 0
+                idx_func_name = 0
+                while (f_name not in s.possible_names):
+                    for tk in s.possible_names:
+                        current_token = tk[i]
+
+                    s.logits = s.llm.get_logits_from_input_ids(context)
+                    restricted_list =  s.restricted_tokens(current_token)
+                    next_tk = restricted_list.index(max(restricted_list))
+                    f_name.append(next_tk)
+                    context.append(next_tk)
+                    i += 1
+                #print(s.llm.decode(f_name))
+                #exit(0)
+                idx_func_name = s.possible_names.index(f_name)
+                input_ids.extend(s.possible_names[idx_func_name])
+                input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav])
+                count += len(s.possible_names[idx_func_name]) + 10
+                wrote_name = True
+                continue

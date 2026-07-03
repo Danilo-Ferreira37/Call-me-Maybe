@@ -6,7 +6,10 @@ class ConstrainedDecoding():
     def __init__(s, llm, definition: list[FuncDef], prompts: list[FuncCall]) -> None:
         s.llm = llm
         s.prompts = prompts
-        s.file_def = str(definition)
+        s.context_file = json.dumps(
+                                    [d.model_dump() for d in definition],
+                                    ensure_ascii=False,
+                                    indent=2)
         s.set_possible_tokens(definition)
         s.output = "["
         s.output_manager()
@@ -59,6 +62,7 @@ class ConstrainedDecoding():
         point = 13
         aspas = 1
         name = 606
+        zero = 15
         parameters = 13786
 
         input_ids = [open_chav, aspas, prompt, aspas, colon, space]
@@ -88,22 +92,19 @@ class ConstrainedDecoding():
                     if type_var == "string":
                         context = f'Given the question {s.prompt}, the string of parameter "{k}" is "'
 
-                        first_aspas = True
                         input_ids.append(aspas)
-                        while input_ids[-1] != aspas or first_aspas:
+                        verify = ""
+                        while True:
                             context_token = s.llm.encode(context).squeeze().tolist()
                             context_logits = s.llm.get_logits_from_input_ids(context_token)
-                            context_logits[516] = -float('inf')
-                            context_logits[14913] = -float('inf')
-                            context_logits[6] = -float('inf')
-                            context_logits[364] = -float('inf')
-                            context_logits[497] = -float('inf')
-                            context_logits[3263] = -float('inf')
-                            print(s.llm.decode(input_ids))
                             next_tk = context_logits.index(max(context_logits))
+                            verify += s.llm.decode(next_tk)
+                            if '"' in verify:
+                                input_ids.append(aspas)
+                                break
                             input_ids.append(next_tk)
                             context += s.llm.decode(next_tk)
-                            first_aspas = False
+                            # tenho que dar decode do parametro string e apagar o que esta apos as aspas e dar encode denovo
 
                     elif type_var == "boolean":
                         context_logits = s.restricted_tokens([false, true])
@@ -123,8 +124,10 @@ class ConstrainedDecoding():
                             else:
                                 if "." not in number:
                                     number += ".0"
+                                    input_ids.extend([point, zero])
                                 elif number[-1] == ".":
                                     number += "0"
+                                    input_ids.append(zero)
                                 break
                         add_context += f"where {k} = {number}, "
 
@@ -160,20 +163,34 @@ class ConstrainedDecoding():
                 continue
    
             elif input_ids[-5] == name:
-                i = 0
                 f_name = []
-                context = s.llm.encode(s.file_def).squeeze().tolist()
+                context = []
+                for i in range(len(s.possible_names)):
+                    context.extend(s.possible_names[i])
+                    context.extend([colon, space])
+                    context.extend(s.descriptions[i])
+                    context.append(space)
+                context.extend(s.llm.encode("User request: ").squeeze().tolist())
                 context.extend(s.original_input)
-                print(s.llm.decode(context))
-                current_token = [tk[i] for tk in s.possible_names]
-                while (len(current_token)) > 0:
-                    s.logits = s.llm.get_logits_from_input_ids(input_ids)
-                    restricted_list =  s.restricted_tokens([current_token])
-                    
+                context.extend(s.llm.encode(" The most appropriate function to call is: ").squeeze().tolist())
 
-
-
-                
+                #print(s.llm.decode(context))
+                #exit(0)
+                candidate_names = s.possible_names.copy()
+                i = 0
+                while len(candidate_names) > 1:
+                    s.logits = s.llm.get_logits_from_input_ids(context)
+                    possibles_tk = [tk[i] for tk in candidate_names]
+                    restricted_list =  s.restricted_tokens(possibles_tk)
+                    next_tk = restricted_list.index(max(restricted_list))
+                    f_name.append(next_tk)
+                    context.append(next_tk)
+                    for candidate in candidate_names.copy():
+                        if next_tk != candidate[i]:
+                            candidate_names.remove(candidate)
+                    i += 1
+                f_name = candidate_names[0]
+                idx_func_name = s.possible_names.index(f_name)
                 input_ids.extend(s.possible_names[idx_func_name])
                 input_ids.extend([aspas, comma, space, aspas, parameters, aspas, colon, space, open_chav])
                 count += len(s.possible_names[idx_func_name]) + 10
