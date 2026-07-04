@@ -2,6 +2,10 @@ from src.parsing import read_input_files
 from os import system
 from src.constrained_decoding import ConstrainedDecoding
 from llm_sdk import Small_LLM_Model
+# Nao se esquece de pegar as informações da forma certa:
+# uv run python -m src [--functions_definition
+# <function_definition_file>] [--input <input_file>]
+# [--output <output_file>]
 
 
 def main() -> None:
