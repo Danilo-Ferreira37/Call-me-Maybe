@@ -5,16 +5,23 @@ import os
 
 
 class FuncCall(BaseModel):
+    """Represents a parsed function‑calling prompt from the JSON input file."""
     prompt: str
     model_config = ConfigDict(extra="forbid")
 
 
 class VariableType(BaseModel):
+    """Represents a parsed variable type from the JSON
+    function definition file."""
+
     type: Literal["number", "string", "boolean", "integer"]
     model_config = ConfigDict(extra="forbid")
 
 
 class FuncDef(BaseModel):
+    """Represents a parsed function defi loadnitioned
+    from the JSON input file."""
+
     name: str
     description: str
     parameters: Dict[str, VariableType]
@@ -23,6 +30,8 @@ class FuncDef(BaseModel):
 
 
 def parse_funcdef(path: str) -> List[FuncDef]:
+    """Parse the JSON file containing function
+    definitions and return them as FuncDef objects."""
     try:
         with open(path) as f:
             config = json.load(f)
@@ -43,6 +52,8 @@ def parse_funcdef(path: str) -> List[FuncDef]:
 
 
 def parse_funccall(path: str) -> List[FuncCall]:
+    """Parse the JSON file containing function‑calling
+    prompts and return them as FuncCall objects."""
     try:
         with open(path) as f:
             config = json.load(f)
@@ -57,17 +68,21 @@ def parse_funccall(path: str) -> List[FuncCall]:
     try:
         return [FuncCall.model_validate(item) for item in config]
     except ValidationError:
-        print("Error: The input file function_calling_tests.json "
+        print("Error: The input filefunction_calling_tests.json "
               "is in a wrong format!")
         exit(1)
 
 
 def read_input_files(file1: str, file2: str) -> Tuple[List[FuncDef],
                                                       List[FuncCall]]:
+    """Parse both JSON input files and return their function
+    definitions and prompts."""
+
     return parse_funcdef(file1), parse_funccall(file2)
 
 
 def get_tokens_vocabulary() -> None:
+    """Load the tokenizer vocabulary JSON and write it to data/vocab.json."""
     with open(f"{os.environ['HOME']}/sgoinfre/hf-cache/hub"
               "/models--Qwen--Qwen3-0.6B/snapshots/c1899de2"
               "89a04d12100db370d81485cdf75e47ca/vocab.json") as tokens:

@@ -7,8 +7,12 @@ if TYPE_CHECKING:
     from llm_sdk import Small_LLM_Model
 
 
-class ConstrainedDecoding():
-    def __init__(s, llm: Small_LLM_Model, definition: list[FuncDef],
+class ConstrainedDecoding:
+    """Implements a constrained decoding engine that selects and executes the
+    appropriate function call for each prompt. It encodes function metadata,
+    restricts token choices during generation, and produces structured JSON
+    output based on the model's logits."""
+    def __init__(s, llm: "Small_LLM_Model", definition: list[FuncDef],
                  prompts: list[FuncCall]) -> None:
         s.llm = llm
         s.prompts = prompts
@@ -17,12 +21,6 @@ class ConstrainedDecoding():
                                     ensure_ascii=False,
                                     indent=2)
         s.set_possible_tokens(definition)
-        s.output = "["
-        s.output_manager()
-        print(s.output)
-        data = json.loads(s.output)
-        with open("data/output/function_calling_results.json", "w") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
 
     def set_possible_tokens(s, definition: list[FuncDef]) -> None:
         s.possible_names = []
@@ -46,6 +44,7 @@ class ConstrainedDecoding():
         return restricted_list
 
     def output_manager(s) -> None:
+        s.output = "["
         for i in range(len(s.prompts)):
             s.prompt = s.prompts[i].prompt
             s.original_input = s.llm.encode(s.prompt).squeeze().tolist()
@@ -53,6 +52,10 @@ class ConstrainedDecoding():
             if i < len(s.prompts) - 1:
                 s.output += ","
         s.output += "]"
+        print(s.output)
+        data = json.loads(s.output)
+        with open("data/output/function_calling_results.json", "w") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
     def get_lgts(s, tokens_ids: list[int]) -> list[float]:
         # The cast function is only to the mypy checker
@@ -69,14 +72,14 @@ class ConstrainedDecoding():
         colon = 25  # dois pontos
         prompt = 40581
         point = 13
-        aspas = 1
+        quotes = 1  # aspas
         name = 606
         zero = 15
         parameters = 13786
 
-        input_ids = [open_chav, aspas, prompt, aspas, colon, space]
+        input_ids = [open_chav, quotes, prompt, quotes, colon, space]
         count = 0
-        max_novos_tokens = 80
+        max_novos_tokens = 100
         wrote_name = False
         idx_func_name = 0
 
@@ -90,19 +93,19 @@ class ConstrainedDecoding():
                     para_count += 1
                     variable = s.llm.encode(k).squeeze().tolist()
 
-                    input_ids.append(aspas)
+                    input_ids.append(quotes)
                     if isinstance(variable, int):
                         input_ids.append(variable)
-                        input_ids.extend([aspas, colon, space])
+                        input_ids.extend([quotes, colon, space])
                     else:
                         input_ids.extend(variable)
-                        input_ids.extend([aspas, colon, space])
+                        input_ids.extend([quotes, colon, space])
 
                     if type_var == "string":
                         ctxt = str(f'Given the question {s.prompt}, '
                                    f'"the string of parameter "{k}" is "')
 
-                        input_ids.append(aspas)
+                        input_ids.append(quotes)
                         verify = ""
                         while True:
                             # Context token == ctxt_tk
@@ -111,12 +114,12 @@ class ConstrainedDecoding():
                             next_tk = ctxt_logits.index(max(ctxt_logits))
                             verify += s.llm.decode(next_tk)
                             if '"' in verify:
-                                input_ids.append(aspas)
+                                input_ids.append(quotes)
                                 break
                             input_ids.append(next_tk)
                             ctxt += s.llm.decode(next_tk)
                             # tenho que dar decode do parametro string e
-                            # apagar o que esta apos as aspas e
+                            # apagar o que esta apos as quotes e
                             # dar encode denovo
 
                     elif type_var == "boolean":
@@ -169,14 +172,13 @@ class ConstrainedDecoding():
                     else:
                         input_ids.extend([comma, space])
                 break
+            # elif input_ids[-4] in [prompt, name]:
+            #    restricted_list = s.restricted_tokens([quotes])
 
-            elif input_ids[-4] in [prompt, name]:
-                restricted_list = s.restricted_tokens([aspas])
-
-            elif input_ids[-1] == aspas and input_ids[-5] == prompt:
+            elif input_ids[-1] == quotes and input_ids[-5] == prompt:
                 input_ids.extend(s.original_input)
-                input_ids.extend([aspas, comma, space, aspas, name,
-                                  aspas, colon, space, aspas])
+                input_ids.extend([quotes, comma, space, quotes, name,
+                                  quotes, colon, space, quotes])
                 count += len(s.original_input) + 9
                 continue
 
@@ -210,8 +212,8 @@ class ConstrainedDecoding():
                 f_name = candidate_names[0]
                 idx_func_name = s.possible_names.index(f_name)
                 input_ids.extend(s.possible_names[idx_func_name])
-                input_ids.extend([aspas, comma, space, aspas,
-                                  parameters, aspas, colon, space,
+                input_ids.extend([quotes, comma, space, quotes,
+                                  parameters, quotes, colon, space,
                                   open_chav])
                 count += len(s.possible_names[idx_func_name]) + 10
                 wrote_name = True

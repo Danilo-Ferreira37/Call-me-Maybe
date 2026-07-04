@@ -1,12 +1,11 @@
 [project]
 name = "call-me-maybe"
 version = "0.1.0"
-description = ""
+description = "A constrained-decoding engine that parses JSON function definitions and prompts, then executes structured function calling using the 42 LLM SDK."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.15"
 dependencies = ["numpy",
                 "pydantic",
-                "pydantic-mypy",
                 "llm_sdk",
                 "flake8",
                 "mypy"]

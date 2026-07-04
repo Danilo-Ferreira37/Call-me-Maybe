@@ -5,6 +5,9 @@ from llm_sdk import Small_LLM_Model
 
 
 def main() -> None:
+    """Load JSON input files, initialize the
+    LLM and decoding engine, and
+    execute the constrained decoding process."""
     func_def, func_call = read_input_files("data/input"
                                            "/functions_definition.json",
                                            "data/input"
@@ -12,7 +15,7 @@ def main() -> None:
     llm = Small_LLM_Model()
     system("clear")
     decoding = ConstrainedDecoding(llm, func_def, func_call)
-    [decoding]
+    decoding.output_manager()
     # get_tokens_vocabulary()
 
 
