@@ -13,9 +13,10 @@ class ConstrainedDecoding:
     restricts token choices during generation, and produces structured JSON
     output based on the model's logits."""
     def __init__(s, llm: "Small_LLM_Model", definition: list[FuncDef],
-                 prompts: list[FuncCall]) -> None:
+                 prompts: list[FuncCall], output_file: str) -> None:
         s.llm = llm
         s.prompts = prompts
+        s.output_file = output_file
         s.context_file = json.dumps(
                                     [d.model_dump() for d in definition],
                                     ensure_ascii=False,

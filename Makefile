@@ -3,7 +3,7 @@ PIP = $(.VENV)/bin/pip
 RUN = uv run python -m 
 
 run: install
-	@$(RUN) src.main
+	@$(RUN) src
 
 install:
 	@test -d $(.VENV) || uv sync
@@ -27,7 +27,7 @@ fclean:
 	@echo "\033[32mProject full cleanup!!"
 
 debug: install
-	@$(.VENV)/bin/python -m pdb src/main.py
+	@$(.VENV)/bin/python -m pdb -m src
 
 lint: install
 	@$(.VENV)/bin/flake8 .
@@ -42,8 +42,8 @@ lint-strict: install
 help:
 	@echo "\033[35mAvailable Make commands:\033[0m"
 	@echo ""
-	@echo "\033[33minstall\033[0m      Install project dependencies using pip, uv, pipx, or any other package manager of your choice."
-	@echo "\033[33mrun\033[0m          Execute the main script of your project (e.g., via Python interpreter)."
+	@echo "\033[33minstall\033[0m      Install project dependencies using uv."
+	@echo "\033[33mrun\033[0m          Execute the main script project (e.g., via Python interpreter)."
 	@echo "\033[33mdebug\033[0m        Run the main script in debug mode using Python’s built-in debugger (e.g., pdb)."
 	@echo "\033[33mclean\033[0m        Remove temporary files or caches (e.g., __pycache__, .mypy_cache) to keep the project environment clean."
 	@echo "\033[33mfclean\033[0m       Remove all temporary files, caches, and also delete the virtual environment."

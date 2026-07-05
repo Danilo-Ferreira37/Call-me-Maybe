@@ -2,6 +2,7 @@ from pydantic import BaseModel, ValidationError, ConfigDict
 from typing import List, Literal, Dict, Tuple
 import json
 import os
+import argparse
 
 
 class FuncCall(BaseModel):
@@ -27,6 +28,18 @@ class FuncDef(BaseModel):
     parameters: Dict[str, VariableType]
     returns: VariableType
     model_config = ConfigDict(extra="forbid")
+
+
+def parse_args() -> argparse:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--functions_definition",
+                        default="data/input/functions_definition.json")
+    parser.add_argument("--input",
+                        default="data/input/function_calling_tests.json")
+    parser.add_argument("--output",
+                        default="data/output/function_calls.json")
+
+    return parser.parse_args()
 
 
 def parse_funcdef(path: str) -> List[FuncDef]:
