@@ -1,5 +1,5 @@
 from src.parsing import FuncDef, FuncCall
-import json
+import json, os
 from typing import TYPE_CHECKING, cast
 
 
@@ -30,6 +30,7 @@ class ConstrainedDecoding:
 
         for i, dct in enumerate(definition):
             parameter = {}
+
             s.possible_names.append(s.llm.encode(dct.name).squeeze().tolist())
             s.dscrp.append(s.llm.encode(dct.description).squeeze().tolist())
             for para_name, para_type in definition[i].parameters.items():
@@ -48,15 +49,20 @@ class ConstrainedDecoding:
         s.output = "["
         for i in range(len(s.prompts)):
             s.prompt = s.prompts[i].prompt
+
             s.original_input = s.llm.encode(s.prompt).squeeze().tolist()
             s.flow_decoding()
+            print()
             if i < len(s.prompts) - 1:
                 s.output += ","
         s.output += "]"
         print(s.output)
+
         data = json.loads(s.output)
+        os.system("test -d || mkdir data/output")
         with open("data/output/function_calling_results.json", "w") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.write(data, f, ensure_ascii=False, indent=2)
+
 
     def get_lgts(s, tokens_ids: list[int]) -> list[float]:
         # The cast function is only to the mypy checker
@@ -78,13 +84,13 @@ class ConstrainedDecoding:
         zero = 15
         parameters = 13786
 
-        input_ids = [open_chav, quotes, prompt, quotes, colon, space]
+        input_ids = [open_chav, quotes, prompt, quotes, colon, space, quotes]
         count = 0
-        max_novos_tokens = 100
+        max_news_tokens = 100
         wrote_name = False
         idx_func_name = 0
 
-        while count < max_novos_tokens:
+        while count < max_news_tokens:
             s.logits = s.get_lgts(input_ids)
 
             if wrote_name:
@@ -103,25 +109,49 @@ class ConstrainedDecoding:
                         input_ids.extend([quotes, colon, space])
 
                     if type_var == "string":
-                        ctxt = str(f'Given the question {s.prompt}, '
-                                   f'"the string of parameter "{k}" is "')
-
+                        params_schema = ", ".join(
+                            [f"{pk}:{pv}" for pk, pv in s.parameters[idx_func_name].items()]
+                        )
+                        if "{" in s.prompt and "}" in s.prompt:
+                            ctxt = (
+                                    'Extract the exact literal value of parameter "template" '
+                                    '(do not resolve or expand any placeholders inside it).\n'
+                                    f'Question: "{s.prompt}"\n'
+                                    f'Extract the exact literal value of parameter "{k}" '
+                                    f'(do not resolve or expand any placeholders inside it).\n'
+                                    f'Answer: "')
+                        else:
+                            ctxt = (
+                               f"Function={s.llm.decode(s.possible_names[idx_func_name])}\n"
+                                f"Description={s.llm.decode(s.dscrp[idx_func_name])}\n"
+                                f"Params={params_schema}\n"
+                                f"User='{s.prompt}'\n"
+                                f"Param='{k}' type=string value='")
+                        print(ctxt)
                         input_ids.append(quotes)
-                        verify = ""
-                        while True:
+                        final_name = ""
+                        tokns_security = 0
+                        while tokns_security < 15:
                             # Context token == ctxt_tk
                             ctxt_tk = s.llm.encode(ctxt).squeeze().tolist()
                             ctxt_logits = s.get_lgts(ctxt_tk)
                             next_tk = ctxt_logits.index(max(ctxt_logits))
-                            verify += s.llm.decode(next_tk)
-                            if '"' in verify:
-                                input_ids.append(quotes)
+                            next_tk_str = s.llm.decode(next_tk)
+                            if '"' in next_tk_str:
+                                final_name += next_tk_str.replace('"', "").replace('\n', "")
                                 break
-                            input_ids.append(next_tk)
                             ctxt += s.llm.decode(next_tk)
-                            # tenho que dar decode do parametro string e
-                            # apagar o que esta apos as quotes e
-                            # dar encode denovo
+                            final_name += next_tk_str
+                            tokns_security += 1
+
+
+                        final_name_tk = s.llm.encode(final_name).squeeze().tolist()
+                        if isinstance(final_name_tk, int):
+                            input_ids.append(final_name_tk)
+                        else:
+                            input_ids.extend(final_name_tk)
+
+                        input_ids.append(quotes)
 
                     elif type_var == "boolean":
                         context_lgt = s.restricted_tokens([false, true])
@@ -133,9 +163,9 @@ class ConstrainedDecoding:
                                    f"value of parameter '{k}' is ")
                         number = ""
                         while True:
-                            cntxt_tk = s.llm.encode(ctxt).squeeze().tolist()
-                            cntxt_lgt = s.get_lgts(ctxt_tk)
-                            next_token = cntxt_lgt.index(max(cntxt_lgt))
+                            ctxt_tk = s.llm.encode(ctxt).squeeze().tolist()
+                            ctxt_lgt = s.get_lgts(ctxt_tk)
+                            next_token = ctxt_lgt.index(max(ctxt_lgt))
                             if ((next_token >= 15 and next_token <= 24)
                                or next_token == point):
                                 input_ids.append(next_token)
@@ -177,7 +207,10 @@ class ConstrainedDecoding:
             #    restricted_list = s.restricted_tokens([quotes])
 
             elif input_ids[-1] == quotes and input_ids[-5] == prompt:
-                input_ids.extend(s.original_input)
+                str_input = s.llm.decode(s.original_input)
+                str_input = str_input.replace('"', '\\"')
+                tk = s.llm.encode(str_input).squeeze().tolist()
+                input_ids.extend(tk)
                 input_ids.extend([quotes, comma, space, quotes, name,
                                   quotes, colon, space, quotes])
                 count += len(s.original_input) + 9

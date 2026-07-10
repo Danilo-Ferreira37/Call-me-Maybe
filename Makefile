@@ -6,6 +6,15 @@ run: install
 	@$(RUN) src
 
 install:
+#	@mkdir -p $$HOME/sgoinfre/.cache
+#
+#	@if [ -d $$HOME/.cache ] && [ ! -L $$HOME/.cache ]; then \
+#		cp -a $$HOME/.cache/. $$HOME/sgoinfre/.cache/; \
+#		rm -rf $$HOME/.cache; \
+#
+#	@if [ ! -e $$HOME/.cache ]; then \
+#		ln -s $$HOME/sgoinfre/.cache $$HOME/.cache; \
+#	fi
 	@test -d $(.VENV) || uv sync
 
 clean:

@@ -11,8 +11,11 @@ def main() -> None:
 
     # Falta acabar o parsing, strings vazias, prompts ambiguos, parametros de definicao repetidos etc ...
     args = parse_args()
-    func_def, func_call = read_input_files(args.functions_definition,
+    try:
+        func_def, func_call = read_input_files(args.functions_definition,
                                            args.input)
+    except FileNotFoundError:
+        print("Error: FileNotFoundError")
     llm = Small_LLM_Model()
     system("clear")
     decoding = ConstrainedDecoding(llm, func_def, func_call, args.output)

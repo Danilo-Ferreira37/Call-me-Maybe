@@ -1,8 +1,26 @@
-from pydantic import BaseModel, ValidationError, ConfigDict
+from pydantic import BaseModel, ValidationError, ConfigDict, field_validator
 from typing import List, Literal, Dict, Tuple
 import json
 import os
 import argparse
+
+
+def load_json_no_duplicates(path: str):
+    def detect_duplicates(pairs):
+        seen = {}
+        for key, value in pairs:
+            if key in seen:
+                raise ValueError(f"Error: Duplicate key '{key}' in JSON file {path}")
+            seen[key] = value
+        return seen
+
+    with open(path) as f:
+        raw = f.read()
+    try:
+        return json.loads(raw, object_pairs_hook=detect_duplicates)
+    except ValueError as e:
+        print(e)
+        exit(1)
 
 
 class FuncCall(BaseModel):
@@ -10,24 +28,44 @@ class FuncCall(BaseModel):
     prompt: str
     model_config = ConfigDict(extra="forbid")
 
+    @field_validator("prompt")
+    def parse_empty_string(cls, v):
+        if not v.strip():
+            print("Error: Prompt cannot be empty")
+            exit(1)
+        return v
+
 
 class VariableType(BaseModel):
     """Represents a parsed variable type from the JSON
     function definition file."""
-
     type: Literal["number", "string", "boolean", "integer"]
     model_config = ConfigDict(extra="forbid")
 
 
 class FuncDef(BaseModel):
-    """Represents a parsed function defi loadnitioned
+    """Represents a parsed function definition
     from the JSON input file."""
-
     name: str
     description: str
     parameters: Dict[str, VariableType]
     returns: VariableType
     model_config = ConfigDict(extra="forbid")
+    
+    @field_validator("name", "description")
+    def parse_empty_string(cls, v):
+        if not v.strip():
+            print("Error: Prompt cannot be empty")
+            exit(1)
+        return v
+    
+    @field_validator("parameters")
+    def parse_empty_parameters(cls, p):
+        for k,_ in p.items():
+            if not k.strip():
+                print("Error: Parameter prompt cannot be empty")
+                exit(1)
+        return p
 
 
 def parse_args() -> argparse:
@@ -46,10 +84,12 @@ def parse_funcdef(path: str) -> List[FuncDef]:
     """Parse the JSON file containing function
     definitions and return them as FuncDef objects."""
     try:
-        with open(path) as f:
-            config = json.load(f)
+        config = load_json_no_duplicates(path)
     except json.JSONDecodeError as e:
         print("Error in the json file:", e)
+        exit(1)
+    except ValueError as e:
+        print(e)
         exit(1)
 
     if not isinstance(config, list):
@@ -68,10 +108,12 @@ def parse_funccall(path: str) -> List[FuncCall]:
     """Parse the JSON file containing function‑calling
     prompts and return them as FuncCall objects."""
     try:
-        with open(path) as f:
-            config = json.load(f)
+        config = load_json_no_duplicates(path)
     except json.JSONDecodeError as e:
         print("Error in the json file:", e)
+        exit(1)
+    except ValueError as e:
+        print(e)
         exit(1)
 
     if not isinstance(config, list):
@@ -81,7 +123,7 @@ def parse_funccall(path: str) -> List[FuncCall]:
     try:
         return [FuncCall.model_validate(item) for item in config]
     except ValidationError:
-        print("Error: The input filefunction_calling_tests.json "
+        print("Error: The input file function_calling_tests.json "
               "is in a wrong format!")
         exit(1)
 
