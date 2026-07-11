@@ -1,21 +1,23 @@
-.VENV = .venv
-PIP = $(.VENV)/bin/pip
+VENV = .venv
+PIP = $(VENV)/bin/pip
 RUN = uv run python -m 
 
 run: install
 	@$(RUN) src
 
 install:
-#	@mkdir -p $$HOME/sgoinfre/.cache
-#
-#	@if [ -d $$HOME/.cache ] && [ ! -L $$HOME/.cache ]; then \
-#		cp -a $$HOME/.cache/. $$HOME/sgoinfre/.cache/; \
-#		rm -rf $$HOME/.cache; \
-#
-#	@if [ ! -e $$HOME/.cache ]; then \
-#		ln -s $$HOME/sgoinfre/.cache $$HOME/.cache; \
-#	fi
-	@test -d $(.VENV) || uv sync
+	@mkdir -p $$HOME/sgoinfre/.cache
+
+	@if [ -d $$HOME/.cache ] && [ ! -L $$HOME/.cache ]; then \
+	    cp -a $$HOME/.cache/. $$HOME/sgoinfre/.cache/; \
+	    rm -rf $$HOME/.cache; \
+	fi
+
+	@if [ ! -e $$HOME/.cache ]; then \
+	    ln -s $$HOME/sgoinfre/.cache $$HOME/.cache; \
+	fi
+
+	@test -d $(VENV) || uv sync
 
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
@@ -31,21 +33,21 @@ fclean:
 	@find . -type f -name "*.pyc" -delete
 	@rm -rf .venv
 	@rm -f data/vocab.json
-	@rm -f data/output/function_calling_results.json
+	@rm -rf data/output
 	@clear
 	@echo "\033[32mProject full cleanup!!"
 
 debug: install
-	@$(.VENV)/bin/python -m pdb -m src
+	@$(VENV)/bin/python -m pdb -m src
 
 lint: install
-	@$(.VENV)/bin/flake8 .
-	@$(.VENV)/bin/mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	@$(VENV)/bin/flake8 .
+	@$(VENV)/bin/mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 	@echo "\033[32mEverything in the norm!!"
 
 lint-strict: install
-	@$(.VENV)/bin/flake8 .
-	@$(.VENV)/bin/mypy . --strict
+	@$(VENV)/bin/flake8 .
+	@$(VENV)/bin/mypy . --strict
 	@echo "\033[32mEverything in the norm!!"
 
 help:
@@ -55,7 +57,7 @@ help:
 	@echo "\033[33mrun\033[0m          Execute the main script project (e.g., via Python interpreter)."
 	@echo "\033[33mdebug\033[0m        Run the main script in debug mode using Python’s built-in debugger (e.g., pdb)."
 	@echo "\033[33mclean\033[0m        Remove temporary files or caches (e.g., __pycache__, .mypy_cache) to keep the project environment clean."
-	@echo "\033[33mfclean\033[0m       Remove all temporary files, caches, and also delete the virtual environment."
+	@echo "\033[33mfclean\033[0m       Remove all temporary files, caches, output directory and also delete the virtual environment."
 	@echo "\033[33mlint\033[0m         Execute flake8 . and mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs"
 	@echo "\033[33mlint-strict\033[0m  Execute flake8 . and mypy . --strict"
 

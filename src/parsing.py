@@ -3,21 +3,30 @@ from typing import List, Literal, Dict, Tuple
 import json
 import os
 import argparse
+from argparse import Namespace
 
 
-def load_json_no_duplicates(path: str):
-    def detect_duplicates(pairs):
+def load_json_no_duplicates(path: str) -> dict[str, object]:
+    """Loads file and verify if a file be in a valid json
+      and if json file has duplicates"""
+    def detect_duplicates(pairs:
+                          list[tuple[str, object]]) -> dict[str, object]:
         seen = {}
         for key, value in pairs:
             if key in seen:
-                raise ValueError(f"Error: Duplicate key '{key}' in JSON file {path}")
+                raise ValueError(f"Error: Duplicate "
+                                 f"key '{key}' in JSON file {path}")
             seen[key] = value
         return seen
 
     with open(path) as f:
         raw = f.read()
     try:
-        return json.loads(raw, object_pairs_hook=detect_duplicates)
+        result: dict[str, object] = json.loads(
+                    raw,
+                    object_pairs_hook=detect_duplicates
+                )
+        return result
     except ValueError as e:
         print(e)
         exit(1)
@@ -29,7 +38,7 @@ class FuncCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @field_validator("prompt")
-    def parse_empty_string(cls, v):
+    def parse_empty_string(cls, v: str) -> str:
         if not v.strip():
             print("Error: Prompt cannot be empty")
             exit(1)
@@ -51,24 +60,25 @@ class FuncDef(BaseModel):
     parameters: Dict[str, VariableType]
     returns: VariableType
     model_config = ConfigDict(extra="forbid")
-    
+
     @field_validator("name", "description")
-    def parse_empty_string(cls, v):
+    def parse_empty_string(cls, v: str) -> str:
         if not v.strip():
             print("Error: Prompt cannot be empty")
             exit(1)
         return v
-    
+
     @field_validator("parameters")
-    def parse_empty_parameters(cls, p):
-        for k,_ in p.items():
+    def parse_empty_parameters(cls, p: dict[str, str]) -> dict[str, str]:
+        for k, _ in p.items():
             if not k.strip():
                 print("Error: Parameter prompt cannot be empty")
                 exit(1)
         return p
 
 
-def parse_args() -> argparse:
+def parse_args() -> Namespace:
+    """Get arguments from terminal"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--functions_definition",
                         default="data/input/functions_definition.json")

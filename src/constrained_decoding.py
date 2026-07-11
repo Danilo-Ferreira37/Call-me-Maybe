@@ -1,5 +1,6 @@
 from src.parsing import FuncDef, FuncCall
-import json, os
+import json
+import os
 from typing import TYPE_CHECKING, cast
 
 
@@ -52,17 +53,18 @@ class ConstrainedDecoding:
 
             s.original_input = s.llm.encode(s.prompt).squeeze().tolist()
             s.flow_decoding()
-            print()
             if i < len(s.prompts) - 1:
                 s.output += ","
         s.output += "]"
-        print(s.output)
-
-        data = json.loads(s.output)
-        os.system("test -d || mkdir data/output")
+        try:
+            data = json.loads(s.output)
+        except json.JSONDecodeError as e:
+            print("Fatal Error:")
+            print(e)
+            exit(1)
+        os.makedirs("data/output", exist_ok=True)
         with open("data/output/function_calling_results.json", "w") as f:
-            f.write(data, f, ensure_ascii=False, indent=2)
-
+            json.dump(data, f, indent=4)
 
     def get_lgts(s, tokens_ids: list[int]) -> list[float]:
         # The cast function is only to the mypy checker
@@ -110,24 +112,49 @@ class ConstrainedDecoding:
 
                     if type_var == "string":
                         params_schema = ", ".join(
-                            [f"{pk}:{pv}" for pk, pv in s.parameters[idx_func_name].items()]
+                            [f"{pk}:{pv}" for
+                             pk, pv in s.parameters[idx_func_name].items()]
                         )
-                        if "{" in s.prompt and "}" in s.prompt:
-                            ctxt = (
-                                    'Extract the exact literal value of parameter "template" '
-                                    '(do not resolve or expand any placeholders inside it).\n'
-                                    f'Question: "{s.prompt}"\n'
-                                    f'Extract the exact literal value of parameter "{k}" '
-                                    f'(do not resolve or expand any placeholders inside it).\n'
-                                    f'Answer: "')
-                        else:
-                            ctxt = (
-                               f"Function={s.llm.decode(s.possible_names[idx_func_name])}\n"
-                                f"Description={s.llm.decode(s.dscrp[idx_func_name])}\n"
+                        rules = (
+                                 'Extract parameter values EXACTLY as'
+                                 ' they appear in the text. '
+                                 'Copy the full literal string, never '
+                                 'shorten or simplify it. '
+                                 'When the text mentions multiple '
+                                 'similar words, pick the one that '
+                                 'matches the parameter\'s role in '
+                                 'the sentence, not just any nearby word.\n\n'
+
+                                 'Function=fn_read_file\n'
+                                 'Description=Read a file from the given '
+                                 'path with specified encoding.\n'
+                                 'Params=path:string, encoding:string\n'
+                                 'User="Read the file at '
+                                 '/var/log/app/output.log with ascii '
+                                 'encoding"\n'
+                                 'Param="path" type=string value="'
+                                 '/var/log/app/output.log"\n\n'
+
+                                 'Function=fn_execute_sql_query\n'
+                                 'Description=Execute a SQL query on'
+                                 ' a specified database.\n'
+                                 'Params=query:string, database:string\n'
+                                 'User="Run the query \'DELETE'
+                                 ' FROM sessions\' on the analytics '
+                                 'database"\n'
+                                 'Param="database" type=string'
+                                 ' value="analytics"\n\n'
+                                )
+                        ctxt = (rules +
+                                f"Function={s.llm.decode(s.
+                                                         possible_names
+                                                         [idx_func_name])}\n"
+                                f"Description={s.llm.decode(s.dscrp
+                                                            [idx_func_name]
+                                                            )}\n"
                                 f"Params={params_schema}\n"
-                                f"User='{s.prompt}'\n"
-                                f"Param='{k}' type=string value='")
-                        print(ctxt)
+                                f'User="{s.prompt.replace("\\", "\\\\")}"\n'
+                                f'Param="{k}" type=string value="')
                         input_ids.append(quotes)
                         final_name = ""
                         tokns_security = 0
@@ -138,18 +165,19 @@ class ConstrainedDecoding:
                             next_tk = ctxt_logits.index(max(ctxt_logits))
                             next_tk_str = s.llm.decode(next_tk)
                             if '"' in next_tk_str:
-                                final_name += next_tk_str.replace('"', "").replace('\n', "")
+                                final_name += str(next_tk_str.
+                                                  replace('"', "").
+                                                  replace('\n', ""))
                                 break
                             ctxt += s.llm.decode(next_tk)
                             final_name += next_tk_str
                             tokns_security += 1
 
-
-                        final_name_tk = s.llm.encode(final_name).squeeze().tolist()
-                        if isinstance(final_name_tk, int):
-                            input_ids.append(final_name_tk)
+                        fname_tk = s.llm.encode(final_name).squeeze().tolist()
+                        if isinstance(fname_tk, int):
+                            input_ids.append(fname_tk)
                         else:
-                            input_ids.extend(final_name_tk)
+                            input_ids.extend(fname_tk)
 
                         input_ids.append(quotes)
 
@@ -160,7 +188,7 @@ class ConstrainedDecoding:
                     elif type_var == "number":
                         ctxt = str(f"Given the question {s.prompt},"
                                    f"{add_context} the "
-                                   f"value of parameter '{k}' is ")
+                                   f"literal value of parameter '{k}' is ")
                         number = ""
                         while True:
                             ctxt_tk = s.llm.encode(ctxt).squeeze().tolist()
@@ -203,12 +231,11 @@ class ConstrainedDecoding:
                     else:
                         input_ids.extend([comma, space])
                 break
-            # elif input_ids[-4] in [prompt, name]:
-            #    restricted_list = s.restricted_tokens([quotes])
 
             elif input_ids[-1] == quotes and input_ids[-5] == prompt:
                 str_input = s.llm.decode(s.original_input)
-                str_input = str_input.replace('"', '\\"')
+                str_input = str_input.replace("\\", "\\\\").replace('"',
+                                                                    '\\"')
                 tk = s.llm.encode(str_input).squeeze().tolist()
                 input_ids.extend(tk)
                 input_ids.extend([quotes, comma, space, quotes, name,
@@ -219,17 +246,26 @@ class ConstrainedDecoding:
             elif input_ids[-5] == name:
                 f_name = []
                 cntxt: list[int] = []
+                cntxt.extend(s.llm.encode("Available functions:"
+                                          "\n").flatten().tolist())
                 for i in range(len(s.possible_names)):
+                    cntxt.extend(s.llm.encode("- ").flatten().tolist())
                     cntxt.extend(s.possible_names[i])
                     cntxt.extend([colon, space])
                     cntxt.extend(s.dscrp[i])
-                    cntxt.append(space)
-                cntxt.extend(s.llm.encode("User "
+                    cntxt.extend(s.llm.encode("\n").flatten().tolist())
+                cntxt.extend(s.llm.encode("\nUser "
                                           "request: ").squeeze().tolist())
                 cntxt.extend(s.original_input)
-                cntxt.extend(s.llm.encode(" The most appropriate function "
-                                          "to call "
-                                          "is: ").squeeze().tolist())
+                cntxt.extend(s.llm.encode(
+                    "\nBased on the request "
+                    "above, choose exactly one function name "
+                    "from the list that best matches the task. "
+                    "Do not choose based on "
+                    "surface keywords alone — consider what the "
+                    "function actually does.\n"
+                    "Most appropriate function name: "
+                ).flatten().tolist())
                 candidate_names = s.possible_names.copy()
                 i = 0
                 while len(candidate_names) > 1:
@@ -261,4 +297,3 @@ class ConstrainedDecoding:
             count += 1
         input_ids.append(close_chav)
         s.output += s.llm.decode(input_ids)
-        print(s.llm.decode(input_ids))
