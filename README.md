@@ -251,8 +251,7 @@ The implementation was validated primarily through **targeted example-driven tes
 
 - https://www.youtube.com/watch?v=LPZh9BOjkQs
 - https://pydantic.dev/docs/validation/latest/get-started/
-- 
-- 
+- https://www.youtube.com/watch?v=wjZofJX0v4M
 
 ### Use of AI
 
