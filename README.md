@@ -249,12 +249,11 @@ The implementation was validated primarily through **targeted example-driven tes
 
 ### Classic references
 
-- [Introduction to Function Calling in LLMs](https://platform.openai.com/docs/guides/function-calling) — general overview of how function/tool calling is typically exposed to LLMs.
-- [Constrained Decoding / Guided Generation overview](https://huggingface.co/docs/transformers/en/main_classes/text_generation) — Hugging Face's `generate()` documentation, covering logits processors and constrained generation concepts.
-- [Pydantic documentation](https://docs.pydantic.dev/latest/) — used for strict validation and parsing of the JSON input files (`FuncDef`, `FuncCall`, `VariableType`).
-- [uv documentation](https://docs.astral.sh/uv/) — the package/environment manager used to install and run this project.
-- [Python `argparse` documentation](https://docs.python.org/3/library/argparse.html) — used for CLI argument parsing.
-- [JSON Specification (RFC 8259)](https://datatracker.ietf.org/doc/html/rfc8259) — the ground truth for what counts as syntactically valid output.
+- https://www.youtube.com/watch?v=LPZh9BOjkQs
+- https://pydantic.dev/docs/validation/latest/get-started/
+- 
+- 
 
 ### Use of AI
-...
+
+AI was used to help understand how LLMs work, to consult Python documentation like uv, to adjust the code to the mypy norm, and to help structure this README.
